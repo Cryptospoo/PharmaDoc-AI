@@ -1,5 +1,5 @@
 import streamlit as st
-from groq import Groq
+from together import Together
 import pdfplumber
 import json
 import pandas as pd
@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
 st.set_page_config(page_title="PharmaDoc AI - Indian Pharmacy", layout="wide")
 st.title("💊 PharmaDoc AI – Indian Pharmacy Document Wrapper")
@@ -18,7 +18,7 @@ language_options = {
     "English": "English",
     "Hindi": "Hindi (हिंदी)",
     "Kannada": "Kannada (ಕನ್ನಡ)",
-    "Telugu": "Telugu (తెಲుగు)",
+    "Telugu": "Telugu (తెలುගు)",
     "Tamil": "Tamil (தமிழ்)",
     "Marathi": "Marathi (मराठी)",
     "Gujarati": "Gujarati (ગુજરાતી)",
@@ -78,7 +78,7 @@ Document text:
 
         with st.spinner(f"Analyzing with Llama 3.1 in {selected_lang}..."):
             response = client.chat.completions.create(
-                model="llama-3.3-70b-specdec",     # ← Latest working Groq model
+                model="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",     # ← Stable Together.ai model
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
                 max_tokens=2000
