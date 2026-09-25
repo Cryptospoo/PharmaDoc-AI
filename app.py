@@ -1,13 +1,8 @@
 import streamlit as st
-from together import Together
+import ollama
 import pdfplumber
 import json
 import pandas as pd
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-client = Together(api_key=os.getenv("TOGETHER_API_KEY"))
 
 st.set_page_config(page_title="PharmaDoc AI - Indian Pharmacy", layout="wide")
 st.title("💊 PharmaDoc AI – Indian Pharmacy Document Wrapper")
@@ -20,9 +15,9 @@ language_options = {
     "Kannada": "Kannada (ಕನ್ನಡ)",
     "Telugu": "Telugu (తెలుగు)",
     "Tamil": "Tamil (தமிழ்)",
-    "Marathi": "Marathi (मरathi)",
-    "Gujarati": "Gujarati (ગુજરાતી)",
-    "Bengali": "Bengali (বಾಂলা)"
+    "Marathi": "Marathi (मराठी)",
+    "Gujarati": "Gujarati (��ુજરાતી)",
+    "Bengali": "Bengali (বাংলা)"
 }
 
 selected_lang = st.selectbox("Choose Summary Language", list(language_options.keys()), index=0)
@@ -48,6 +43,7 @@ if uploaded_file:
 
     st.subheader("Extracted Text (preview)")
     st.text_area("Extracted Text (preview)", text[:2000], height=150, label_visibility="collapsed")
+
     if st.button("Analyze with AI"):
         prompt = f"""You are an expert Indian pharmacy assistant.
 Extract the following from the document in strict JSON format:
@@ -75,15 +71,13 @@ Then provide:
 Document text:
 {text[:12000]}"""
 
-        with st.spinner(f"Analyzing with Llama 3.1 in {selected_lang}..."):
-            response = client.chat.completions.create(
-                model="meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo",     # ← Stable Together.ai model
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.1,
-                max_tokens=2000
+        with st.spinner(f"Analyzing with Ollama (Llama 3.1)..."):
+            response = ollama.chat(
+                model="llama3.1:8b",     # ← Free local model
+                messages=[{"role": "user", "content": prompt}]
             )
 
-        result = response.choices[0].message.content
+        result = response['message']['content']
         st.subheader("AI Output")
 
         # Try to parse JSON
