@@ -1,7 +1,5 @@
-together
 streamlit
-groq
+ollama
 pdfplumber
 pandas
-python-dotenv
 pypdf
