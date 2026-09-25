@@ -6,8 +6,10 @@ import pandas as pd
 from dotenv import load_dotenv
 import os
 
+# Load environment variables safely
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
 st.set_page_config(page_title="PharmaDoc AI - Indian Pharmacy", layout="wide")
 st.title("💊 PharmaDoc AI – Indian Pharmacy Document Wrapper")
 st.write("Upload prescription or compounding record (PDF or Image) → Get structured data, simple summary in your language & approx. Indian price")
@@ -19,9 +21,9 @@ language_options = {
     "Kannada": "Kannada (ಕನ್ನಡ)",
     "Telugu": "Telugu (తెలుగు)",
     "Tamil": "Tamil (தமிழ்)",
-    "Marathi": "Marathi (मरathi)",
+    "Marathi": "Marathi (मराठी)",
     "Gujarati": "Gujarati (ગુજરાતી)",
-    "Bengali": "Bengali (বাংলા)"
+    "Bengali": "Bengali (বাংলা)"
 }
 
 selected_lang = st.selectbox("Choose Summary Language", list(language_options.keys()), index=0)
