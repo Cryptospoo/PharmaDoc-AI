@@ -7,8 +7,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-client = Groq(api_key=os.getenv("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"))
-
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 st.set_page_config(page_title="PharmaDoc AI - Indian Pharmacy", layout="wide")
 st.title("💊 PharmaDoc AI – Indian Pharmacy Document Wrapper")
 st.write("Upload prescription or compounding record (PDF or Image) → Get structured data, simple summary in your language & approx. Indian price")
