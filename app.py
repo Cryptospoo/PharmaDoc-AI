@@ -47,8 +47,7 @@ if uploaded_file:
         text = ""
 
     st.subheader("Extracted Text (preview)")
-    st.text_area("", text[:2000], height=150)
-
+    st.text_area("Extracted Text (preview)", text[:2000], height=150, label_visibility="collapsed")
     if st.button("Analyze with AI"):
         prompt = f"""You are an expert Indian pharmacy assistant.
 Extract the following from the document in strict JSON format:
