@@ -4,11 +4,14 @@ import pdfplumber
 import json
 import pandas as pd
 
+# Page Configuration
 st.set_page_config(page_title="PharmaDoc AI - Indian Pharmacy", layout="wide")
-st.title("💊 PharmaDoc AI – Indian Pharmacy Document Wrapper")
-st.write("Upload prescription or compounding record (PDF or Image) → Get structured data, simple summary in your language & approx. Indian price")
 
-# Language options
+st.title("💊 PharmaDoc AI – Local Pharmacy Document Wrapper")
+st.write("Running locally with Ollama (Free & Private)")
+st.write("Upload a prescription to get structured data, language summaries, and price estimates.")
+
+# 1. Language Selection
 language_options = {
     "English": "English",
     "Hindi": "Hindi (हिंदी)",
@@ -16,83 +19,111 @@ language_options = {
     "Telugu": "Telugu (తెలుగు)",
     "Tamil": "Tamil (தமிழ்)",
     "Marathi": "Marathi (मराठी)",
-    "Gujarati": "Gujarati (��ુજરાતી)",
+    "Gujarati": "Gujarati (ગુજરાતી)",
     "Bengali": "Bengali (বাংলা)"
 }
 
 selected_lang = st.selectbox("Choose Summary Language", list(language_options.keys()), index=0)
 
-# Accept PDF + all common image formats
+# 2. File Uploader
 uploaded_file = st.file_uploader(
-    "Upload PDF or Image (PNG, JPG, JPEG, GIF, BMP, WEBP)",
-    type=["pdf", "png", "jpg", "jpeg", "gif", "bmp", "webp"]
+    "Upload Prescription (PDF or Image)", 
+    type=["pdf", "png", "jpg", "jpeg"]
 )
 
 if uploaded_file:
     file_type = uploaded_file.type
+    text = ""
 
-    # ===================== PDF Handling =====================
+    # 3. Extract Text from PDF
     if file_type == "application/pdf":
         with pdfplumber.open(uploaded_file) as pdf:
             text = "\n".join([page.extract_text() or "" for page in pdf.pages])
-
-    # ===================== Image Handling =====================
     else:
-        st.info("Image uploaded successfully. OCR (text extraction from image) will be added soon. For now, please use PDF.")
-        text = ""
+        # Note: Image OCR requires additional libraries like EasyOCR. 
+        # For now, we notify the user to use PDF for text extraction.
+        st.info("Image uploaded. Note: Real OCR for handwritten images is best with PDF or specialized tools. Processing metadata...")
+        text = "Image File Uploaded: " + uploaded_file.name
 
-    st.subheader("Extracted Text (preview)")
-    st.text_area("Extracted Text (preview)", text[:2000], height=150, label_visibility="collapsed")
+    # Show text preview
+    if text.strip():
+        st.subheader("Document Content (Preview)")
+        st.text_area("Content", text[:2000], height=150, label_visibility="collapsed")
+    else:
+        st.warning("No text could be extracted. Please ensure the PDF is not just a scanned image.")
 
-    if st.button("Analyze with AI"):
-        prompt = f"""You are an expert Indian pharmacy assistant.
-Extract the following from the document in strict JSON format:
-{{
-  "patient_name": "",
-  "patient_dob": "",
-  "drug_name": "",
-  "strength": "",
-  "dosage_form": "",
-  "quantity": "",
-  "directions": "",
-  "prescriber_name": "",
-  "prescriber_reg_no": "",
-  "date_written": "",
-  "refills": "",
-  "notes": ""
-}}
+    # 4. Analyze Button
+    if st.button("Analyze Document"):
+        if not text.strip():
+            st.error("Cannot analyze an empty document.")
+        else:
+            # The AI Prompt
+            prompt = f"""
+            You are an expert Indian pharmacy assistant. 
+            Analyze the following text from a pharmacy document and provide:
 
-Then provide:
-1. A short plain-English summary
-2. The same summary translated into {selected_lang}
-3. Approximate Indian pharmacy price estimate (generic vs brand, in INR)
-4. Basic compliance checklist (Indian CDSCO / state pharmacy council rules)
+            1. Extract this data in strict JSON format:
+            {{
+              "patient_name": "",
+              "drug_name": "",
+              "strength": "",
+              "dosage": "",
+              "quantity": "",
+              "doctor_name": "",
+              "date": ""
+            }}
 
-Document text:
-{text[:12000]}"""
+            2. Provide a short summary in {selected_lang}.
+            
+            3. Provide an approximate price estimate in Indian Rupees (INR) for these medicines 
+               in the Indian market (mention both Generic and Brand prices).
 
-        with st.spinner(f"Analyzing with Ollama (Llama 3.1)..."):
-            response = ollama.chat(
-                model="llama3.1:8b",     # ← Free local model
-                messages=[{"role": "user", "content": prompt}]
-            )
+            4. A quick compliance check for Indian Pharmacy rules.
 
-        result = response['message']['content']
-        st.subheader("AI Output")
+            Document Text:
+            {text}
+            """
 
-        # Try to parse JSON
-        try:
-            json_start = result.find("{")
-            json_end = result.rfind("}") + 1
-            data = json.loads(result[json_start:json_end])
-            st.success("Structured Data Extracted")
-            st.json(data)
+            try:
+                with st.spinner(f"Ollama is thinking (Llama 3.1)..."):
+                    # Call local Ollama
+                    response = ollama.chat(
+                        model="llama3.1:8b",
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                    
+                    full_response = response['message']['content']
+                    
+                    st.subheader("Results")
+                    st.markdown(full_response)
 
-            # CSV export
-            df = pd.DataFrame([data])
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button("Download as CSV", csv, "prescription_data.csv", "text/csv")
-        except:
-            st.info("Could not parse JSON automatically – see full output below")
+                    # 5. Try to extract JSON for CSV download
+                    try:
+                        # Find the JSON part in the response
+                        start_idx = full_response.find("{")
+                        end_idx = full_response.rfind("}") + 1
+                        json_str = full_response[start_idx:end_idx]
+                        data = json.loads(json_str)
+                        
+                        # Show Table
+                        st.subheader("Structured Data")
+                        df = pd.DataFrame([data])
+                        st.table(df)
 
-        st.markdown(result)
+                        # CSV Download Button
+                        csv = df.to_csv(index=False).encode('utf-8')
+                        st.download_button(
+                            label="Download Data as CSV",
+                            data=csv,
+                            file_name="pharmacy_data.csv",
+                            mime="text/csv"
+                        )
+                    except:
+                        st.info("Note: AI did not format data as a table, but the text summary is above.")
+
+            except Exception as e:
+                st.error(f"Error connecting to Ollama: {e}")
+                st.info("Make sure you have run 'ollama pull llama3.1:8b' in your terminal.")
+
+else:
+    st.info("Please upload a file to begin.")
